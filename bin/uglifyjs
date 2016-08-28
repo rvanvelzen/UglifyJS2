@@ -76,6 +76,7 @@ You need to pass an argument to this option to specify the name that your module
     .describe("name-cache", "File to hold mangled names mappings")
     .describe("pure-funcs", "List of functions that can be safely removed if their return value is not used")
     .describe("dump-spidermonkey-ast", "Dump SpiderMonkey AST to stdout.")
+    .describe("v8-profile", "Record v8 CPU profile to this file (requires v8-profiler to be installed)")
 
     .alias("p", "prefix")
     .alias("o", "output")
@@ -88,6 +89,7 @@ You need to pass an argument to this option to specify the name that your module
     .alias("V", "version")
     .alias("e", "enclose")
     .alias("q", "quotes")
+    .alias("v8", "v8-profile")
 
     .string("source-map")
     .string("source-map-root")
@@ -107,6 +109,8 @@ You need to pass an argument to this option to specify the name that your module
     .string("p")
     .string("prefix")
     .string("name-cache")
+
+    .string("v8-profile")
 
     .array("reserved-file")
     .array("pure-funcs")
@@ -135,6 +139,11 @@ You need to pass an argument to this option to specify the name that your module
 
     .argv
 ;
+
+if (ARGS.v8) {
+    var profiler = require("v8-profiler");
+    profiler.startProfiling('');
+}
 
 normalize(ARGS);
 
@@ -508,6 +517,14 @@ async.eachLimit(files, 1, function (file, cb) {
                 time: (STATS[i] / 1000).toFixed(3)
             }));
         }
+    }
+
+    if (ARGS.v8) {
+        var profile = profiler.stopProfiling('');
+        profile.export(function(error, result) {
+            fs.writeFileSync(ARGS.v8, result);
+            profile.delete();
+        });
     }
 });
 
